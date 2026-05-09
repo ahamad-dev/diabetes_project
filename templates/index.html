@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🩺 Diabetes Prediction System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            color: white;
+            padding: 30px 0 20px;
+        }
+
+        .header h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.82rem;
+            margin: 4px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            color: #4a4a6a;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Algorithm Selector */
+        .algo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .algo-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .algo-card:hover { border-color: #667eea; background: #f8f8ff; }
+        .algo-card.active { border-color: #667eea; background: #f0f0ff; }
+        .algo-card.active::after {
+            content: '✓';
+            position: absolute;
+            top: 10px; right: 12px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .algo-card h3 { font-size: 0.95rem; color: #333; margin-bottom: 4px; }
+        .algo-card p  { font-size: 0.78rem; color: #888; }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: repeat(2, 1fr); }
+            .algo-grid { grid-template-columns: 1fr; }
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e8e8e8;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #333;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus { border-color: #667eea; }
+        .form-group .hint { font-size: 0.72rem; color: #aaa; margin-top: 3px; }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.5); }
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #555;
+        }
+
+        .btn-secondary:hover { background: #eee; }
+
+        /* Result */
+        #result-card { display: none; }
+
+        .result-header {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .result-header.positive { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; }
+        .result-header.negative { background: linear-gradient(135deg, #55efc4, #00b894); color: white; }
+
+        .result-header .emoji { font-size: 3rem; margin-bottom: 10px; }
+        .result-header .label { font-size: 1.6rem; font-weight: 700; }
+        .result-header .model-tag { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; }
+
+        /* Probability Bar */
+        .prob-section { margin-bottom: 20px; }
+        .prob-label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #555; }
+        .prob-bar { height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; }
+        .prob-fill { height: 100%; border-radius: 10px; transition: width 0.8s ease; }
+
+        /* Risk badge */
+        .risk-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .risk-message { font-size: 0.9rem; color: #666; }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-box {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .stat-box .val { font-size: 1.4rem; font-weight: 700; color: #667eea; }
+        .stat-box .lbl { font-size: 0.75rem; color: #888; margin-top: 2px; }
+
+        /* Input summary */
+        .input-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .input-item {
+            background: #f8f9ff;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .input-item .ival { font-size: 1.1rem; font-weight: 700; color: #4a4a6a; }
+        .input-item .ilbl { font-size: 0.7rem; color: #aaa; }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px; height: 30px;
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Error */
+        .error-box {
+            background: #fff0f0;
+            border: 1px solid #ffcccc;
+            border-radius: 10px;
+            padding: 16px;
+            color: #c0392b;
+            text-align: center;
+        }
+
+        /* Info section */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) { .info-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        .info-box {
+            text-align: center;
+            padding: 16px;
+            background: #f8f9ff;
+            border-radius: 12px;
+        }
+
+        .info-box .icon { font-size: 2rem; margin-bottom: 8px; }
+        .info-box .title { font-weight: 700; color: #4a4a6a; font-size: 0.9rem; margin-bottom: 4px; }
+        .info-box .desc { font-size: 0.78rem; color: #888; }
+
+        /* Disclaimer */
+        .disclaimer {
+            text-align: center;
+            color: rgba(255,255,255,0.75);
+            font-size: 0.8rem;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <h1>🩺 Diabetes Prediction System</h1>
+            <p>Machine Learning based diabetes risk analysis using clinical parameters</p>
+            <div style="margin-top: 12px;">
+                <span class="badge">📊 Pima Indians Dataset</span>
+                <span class="badge">🤖 Logistic Regression</span>
+                <span class="badge">🌳 Decision Tree</span>
+                <span class="badge">768 Samples</span>
+            </div>
+        </div>
+
+        <!-- Algorithm Selection -->
+        <div class="card">
+            <h2>⚙️ Select Algorithm</h2>
+            <div class="algo-grid">
+                <div class="algo-card active" data-algo="logistic_regression" onclick="selectAlgo(this)">
+                    <h3>🔵 Logistic Regression</h3>
+                    <p>Statistical model using sigmoid function for binary classification. Fast & interpretable.</p>
+                </div>
+                <div class="algo-card" data-algo="decision_tree" onclick="selectAlgo(this)">
+                    <h3>🌳 Decision Tree</h3>
+                    <p>Tree-based model that splits data on feature thresholds. Handles non-linear patterns well.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="card">
+            <h2>📋 Enter Patient Clinical Data</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Pregnancies</label>
+                    <input type="number" id="Pregnancies" placeholder="e.g. 2" min="0" max="20" value="2">
+                    <div class="hint">Number of pregnancies</div>
+                </div>
+                <div class="form-group">
+                    <label>Glucose (mg/dL)</label>
+                    <input type="number" id="Glucose" placeholder="e.g. 120" min="0" max="300" value="120">
+                    <div class="hint">Plasma glucose (2hr)</div>
+                </div>
+                <div class="form-group">
+                    <label>Blood Pressure (mmHg)</label>
+                    <input type="number" id="BloodPressure" placeholder="e.g. 72" min="0" max="200" value="72">
+                    <div class="hint">Diastolic blood pressure</div>
+                </div>
+                <div class="form-group">
+                    <label>Skin Thickness (mm)</label>
+                    <input type="number" id="SkinThickness" placeholder="e.g. 29" min="0" max="100" value="29">
+                    <div class="hint">Triceps skinfold thickness</div>
+                </div>
+                <div class="form-group">
+                    <label>Insulin (mu U/ml)</label>
+                    <input type="number" id="Insulin" placeholder="e.g. 125" min="0" max="900" value="125">
+                    <div class="hint">2-Hour serum insulin</div>
+                </div>
+                <div class="form-group">
+                    <label>BMI (kg/m²)</label>
+                    <input type="number" id="BMI" placeholder="e.g. 32.0" step="0.1" min="0" max="70" value="32.0">
+                    <div class="hint">Body mass index</div>
+                </div>
+                <div class="form-group">
+                    <label>Diabetes Pedigree</label>
+                    <input type="number" id="DiabetesPedigreeFunction" placeholder="e.g. 0.47" step="0.001" min="0" max="3" value="0.47">
+                    <div class="hint">Family history function</div>
+                </div>
+                <div class="form-group">
+                    <label>Age (years)</label>
+                    <input type="number" id="Age" placeholder="e.g. 35" min="0" max="120" value="35">
+                    <div class="hint">Patient age</div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="predict()">🔍 Predict Diabetes Risk</button>
+                <button class="btn btn-secondary" onclick="resetForm()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Result Card -->
+        <div class="card" id="result-card">
+            <h2>📊 Prediction Result</h2>
+            <div id="result-content"></div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="card">
+            <h2>ℹ️ About the Dataset & Features</h2>
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="icon">🗄️</div>
+                    <div class="title">768 Records</div>
+                    <div class="desc">Female patients, age ≥ 21, Pima Indian heritage</div>
+                </div>
+                <div class="info-box">
+                    <div class="icon">🔬</div>
+                    <div class="title">8 Features</div>
+                    <div class="desc">Clinical & demographic parameters</div>
+                </div>
+                <div class="info-box">
+                    <div class="icon">🎯</div>
+                    <div class="title">Binary Target</div>
+                    <div class="desc">0 = No Diabetes, 1 = Diabetes</div>
+                </div>
+                <div class="info-box">
+                    <div class="icon">📈</div>
+                    <div class="title">~77% Accuracy</div>
+                    <div class="desc">Logistic Regression on test set</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            ⚠️ This tool is for educational purposes only and should not be used as a medical diagnosis.
+            Always consult a qualified healthcare professional for medical advice.
+        </div>
+
+    </div>
+
+    <script>
+        let selectedAlgo = 'logistic_regression';
+
+        function selectAlgo(el) {
+            document.querySelectorAll('.algo-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            selectedAlgo = el.dataset.algo;
+        }
+
+        function getInputs() {
+            const fields = ['Pregnancies','Glucose','BloodPressure','SkinThickness',
+                            'Insulin','BMI','DiabetesPedigreeFunction','Age'];
+            const data = { algorithm: selectedAlgo };
+            for (const f of fields) {
+                const val = document.getElementById(f).value;
+                if (val === '' || isNaN(val)) throw new Error(`Please fill in ${f}`);
+                data[f] = parseFloat(val);
+            }
+            return data;
+        }
+
+        async function predict() {
+            const resultCard = document.getElementById('result-card');
+            const resultContent = document.getElementById('result-content');
+
+            let data;
+            try { data = getInputs(); }
+            catch (e) { alert(e.message); return; }
+
+            resultCard.style.display = 'block';
+            resultContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Analyzing patient data...</div>
+                </div>`;
+            resultCard.scrollIntoView({ behavior: 'smooth' });
+
+            try {
+                const resp = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await resp.json();
+                if (result.error) throw new Error(result.error);
+
+                displayResult(result);
+
+            } catch (e) {
+                resultContent.innerHTML = `<div class="error-box">❌ Error: ${e.message}</div>`;
+            }
+        }
+
+        function displayResult(r) {
+            const isPositive = r.prediction === 1;
+            const risk = r.risk_level;
+
+            const inputSummary = Object.entries(r.input_values).map(([k, v]) =>
+                `<div class="input-item">
+                    <div class="ival">${v}</div>
+                    <div class="ilbl">${k.replace('DiabetesPedigreeFunction','DPF')}</div>
+                </div>`
+            ).join('');
+
+            document.getElementById('result-content').innerHTML = `
+                <div class="result-header ${isPositive ? 'positive' : 'negative'}">
+                    <div class="emoji">${isPositive ? '⚠️' : '✅'}</div>
+                    <div class="label">${isPositive ? 'Diabetes Detected' : 'No Diabetes Detected'}</div>
+                    <div class="model-tag">Algorithm: ${r.model_name}</div>
+                </div>
+
+                <div class="prob-section">
+                    <div class="prob-label">
+                        <span>Diabetes Probability</span>
+                        <span>${r.probability}%</span>
+                    </div>
+                    <div class="prob-bar">
+                        <div class="prob-fill" id="prob-fill"
+                             style="width:0%;background:${risk.color}"></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <span class="risk-badge" style="background:${risk.color}">${risk.level} Risk</span>
+                    <p class="risk-message">${risk.message}</p>
+                </div>
+
+                <div class="stats-grid" style="margin-bottom:20px;">
+                    <div class="stat-box">
+                        <div class="val">${r.probability}%</div>
+                        <div class="lbl">Diabetes Probability</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="val">${(100 - r.probability).toFixed(2)}%</div>
+                        <div class="lbl">Healthy Probability</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size:0.9rem;color:#555;margin-bottom:10px;">📥 Input Values Used</h3>
+                <div class="input-summary">${inputSummary}</div>
+            `;
+
+            // Animate bar
+            setTimeout(() => {
+                document.getElementById('prob-fill').style.width = r.probability + '%';
+            }, 100);
+        }
+
+        function resetForm() {
+            const defaults = {
+                Pregnancies: 2, Glucose: 120, BloodPressure: 72,
+                SkinThickness: 29, Insulin: 125, BMI: 32.0,
+                DiabetesPedigreeFunction: 0.47, Age: 35
+            };
+            Object.entries(defaults).forEach(([k, v]) => {
+                const el = document.getElementById(k);
+                if (el) el.value = v;
+            });
+            document.getElementById('result-card').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
